@@ -1,0 +1,41 @@
+body {
+    font-family: 'Quicksand', sans-serif;
+    font-weight: 600;
+    margin: 30px;
+    background: #edcfcf;
+}
+
+.container {
+    box-shadow: #333;
+}
+
+h1, h2 {
+    color: #333;
+}
+
+form, table {
+    background: #ffdbdb;
+    padding: 20px;
+    margin: 5px;
+    border-radius: 8px;
+}
+
+button, a {
+    padding: 10px 15px;
+    background: darkred;
+    color: white;
+    text-decoration: none;
+    border: none;
+    border-radius: 5px;
+}
+
+input {
+    padding: 8px;
+    width: 300px;
+    border: #333 solid 1px;
+    margin: 5px;
+}
+
+.form {
+    align-content: center;
+}
