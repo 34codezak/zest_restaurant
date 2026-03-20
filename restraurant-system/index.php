@@ -1,19 +1,84 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Restaurant Table Reservation System</title>
-    <link rel="stylesheet" href="assets/styles.css">
-    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@300..700&display=swap" rel="stylesheet">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Book a Table - Zest Restaurant</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-    <dev class="container">
-        <h1>Welcome to Zest Restaurant</h1>
-        <p>Reserve your table online with simple steps.</p>
-        <p>Operates 24 Hours</p>
-        <p>Location: Kerugoya, Kenya</p>
+    <nav class="navbar navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="#">🍋 Zest Restaurant</a>
+            <a href="admin.php" class="btn btn-outline-light btn-sm">Admin Login</a>
+        </div>
+    </nav>
 
-    <a href="reservation_form.php">Book a Table</a>
-    </dev>
+    <div class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="card shadow">
+                    <div class="card-header bg-warning text-dark">
+                        <h3 class="mb-0">Reserve Your Table</h3>
+                    </div>
+                    <div class="card-body">
+                        <?php 
+                        if(isset($_GET['status'])) {
+                            if($_GET['status'] == 'success') {
+                                echo '<div class="alert alert-success">Booking Request Sent Successfully!</div>';
+                            } elseif($_GET['status'] == 'error') {
+                                echo '<div class="alert alert-danger">Something went wrong. Please try again.</div>';
+                            }
+                        }
+                        ?>
+                        <form action="submit_booking.php" method="POST">
+                            <div class="mb-3">
+                                <label class="form-label">Full Name</label>
+                                <input type="text" name="name" class="form-control" required placeholder="John Doe">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Email Address</label>
+                                <input type="email" name="email" class="form-control" required placeholder="john@example.com">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Phone Number</label>
+                                <input type="text" name="phone" class="form-control" required placeholder="123-456-7890">
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Date</label>
+                                    <input type="date" name="date" class="form-control" required min="<?php echo date('Y-m-d'); ?>">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Time</label>
+                                    <select name="time" class="form-select" required>
+                                        <option value="">Select Time</option>
+                                        <option value="17:00">5:00 PM</option>
+                                        <option value="18:00">6:00 PM</option>
+                                        <option value="19:00">7:00 PM</option>
+                                        <option value="20:00">8:00 PM</option>
+                                        <option value="21:00">9:00 PM</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Number of Guests</label>
+                                <input type="number" name="guests" class="form-control" min="1" max="20" required>
+                            </div>
+                            <button type="submit" class="btn btn-warning w-100 fw-bold">Confirm Booking</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="text-center mt-5 mb-3 text-muted">
+        <p>&copy; <?php echo date('Y'); ?> Zest Restaurant. Fresh Flavors.</p>
+    </footer>
+
 </body>
 </html>

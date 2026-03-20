@@ -1,99 +1,63 @@
 <?php
+// functions.php
+require_once 'config.php';
 
-session_start();
-require_once "config/db.php";
-
-$full_name = trim($_POST['full_name']);
-$email = trim($_POST['email']);
-$phone = trim($_POST['phone']);
-$reservation_date = $_POST['reservation_date'];
-$reservation_time = $_POST['reservation_time'];
-$party_size = (int)$_POST['party_size'];
-
-$errors = [];
-
-// Validating the user inputs
-if ($party_size < 1 || $party_size > 8) {
-    $errors[] = "Party size must be between 1 and 8";
+// Validate Party Size
+function validatePartySize($size) {
+    return is_numeric($size) && $size > 0 && $size <= 20;
 }
 
-if (strtotime($reservation_date) < strtotime(date('Y-m-d'))) {
-    $errors[] = "Reservation date cannot be in the past.";
+// Check Availability Algorithm
+function getAvailableTables($pdo, $date, $slot_id, $party_size) {
+    // 1. Find tables with enough capacity
+    // 2. Exclude tables that already have a confirmed reservation for this date/slot
+    $sql = "SELECT t.table_id, t.table_number, t.capacity 
+            FROM tables t 
+            WHERE t.capacity >= :size 
+            AND t.table_id NOT IN (
+                SELECT r.table_id 
+                FROM reservations r 
+                WHERE r.reservation_date = :date 
+                AND r.slot_id = :slot_id 
+                AND r.status != 'cancelled'
+            )";
+    
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute([
+        ':size' => $party_size,
+        ':date' => $date,
+        ':slot_id' => $slot_id
+    ]);
+    
+    return $stmt->fetchAll();
 }
 
-if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-    $errors[] = "Invalid email address";
-}
+// Create Customer & Reservation (Transaction for Safety)
+function createReservation($pdo, $name, $email, $phone, $date, $slot_id, $table_id, $party_size) {
+    try {
+        $pdo->beginTransaction();
 
-if (empty($full_name) || empty($phone)) {
-    $errors[] = "Name and phone number are required.";
-}
+        // 1. Create/Find Customer
+        $stmt = $pdo->prepare("INSERT INTO customers (name, email, phone) VALUES (:name, :email, :phone)");
+        $stmt->execute([':name' => $name, ':email' => $email, ':phone' => $phone]);
+        $customer_id = $pdo->lastInsertId();
 
-if (!empty($errors)) {
-    foreach($errors as $error) {
-        echo "<p style='color: red;'>$error</p>";
+        // 2. Create Reservation
+        $stmt = $pdo->prepare("INSERT INTO reservations (customer_id, table_id, slot_id, reservation_date, party_size, status) 
+                               VALUES (:cid, :tid, :sid, :date, :size, 'confirmed')");
+        $stmt->execute([
+            ':cid' => $customer_id,
+            ':tid' => $table_id,
+            ':sid' => $slot_id,
+            ':date' => $date,
+            ':size' => $party_size
+        ]);
+
+        $pdo->commit();
+        return $pdo->lastInsertId();
+    } catch (Exception $e) {
+        $pdo->rollBack();
+        return false;
     }
-    echo "<a href='reservation_form.php'>Go Back</a>";
-    exit;
 }
-
-// Find time slot
-$stmt = $pdo->prepare("SELECT id FROM time_slots WHERE slot_time = ?");
-$stmt->execute([$reservation_time]);
-$slot = $stmt->fetch(PDO::FETCH_ASSOC);
-
-if (!$slot) {
-    echo "Invalid time slot selected.";
-    exit;
-}
-
-$time_slot_id = $slot['id'];
-
-// Find available tables with enough capacity and not already reserved
-$sql = "
-SELECT t.id, t.table, t.capacity
-FROM tables t 
-WHERE t.capacity >= ?
-AND t.id NOT IN (
-    SELET r.table_id
-    FROM reservations r
-    WHERE r.reservation_date = ? 
-    AND r.time_slot_id = ?
-    AND r.status IN ('held', 'confirmed')
-    AND (
-        r.hold_expires_at IS NULL OR r.hold_expires_at > NOW()
-    )
-)
-ORDER BY t.capacity ASC
-";
-
-$stmt = $pdo->prepare($sql);
-$stmt->execute([$party_size, $reservation_date, $time_slot_id]);
-$available_tables = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-$_SESSION['customer_data'] = [
-    'full_name' => $full_name,
-    'email' => $email,
-    'phone' => $phone,
-    'reservation_date' =>  $reservation_date,
-    'reservation_time' => $reservation_time,
-    'time_slot_id' => $time_slot_id,
-    'party_size' => $party_size
-];
-
-echo "<h2>Available Tables</h2>";
-
-if (count($available_tables) > 0) {
-    echo "<form action='create_reservation.php' method='POST'>";
-    foreach ($available_tables as $table) {
-        echo "<input type='radio' name='table_id' value='{$table['id']}' required> ";
-        echo "Table {$table['table_number']} (Capacity: {$table['capacity']})<br>";
-    }
-    echo "<br><button type='submit'>Reserve Selected Table</button>";
-    echo "</form>";
-} else {
-    echo "<p style='color:red;'>No tables available for the selected time and party size.</p>";
-    echo "<a href='reservation_form.php'>Try Another Time</a>";
-}
-
 ?>
