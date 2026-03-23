@@ -1,7 +1,7 @@
 <?php 
 
 session_start();
-require_once "config/db.php";
+require_once __DIR__ . '/config.php';
 
 if (!isset($_SESSION['customer_data'])) {
     die("Session expired. Please start again.");

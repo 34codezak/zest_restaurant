@@ -16,8 +16,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $message = "Invalid party size.";
     } elseif (isset($_POST['confirm_payment'])) {
         // Simulate Payment Processing & Finalize
-        $res_id = createReservation($pdo, $_SESSION['temp_name'], $_SESSION['temp_email'], 
-                                    $_SESSION['temp_phone'], $date, $slot_id, $table_id, $party_size);
+        $res_id = createReservation($pdo, 
+                                    $_SESSION['temp_name'], 
+                                    $_SESSION['temp_email'], 
+                                    $_SESSION['temp_phone'], 
+                                    $date, 
+                                    $slot_id, 
+                                    $table_id, 
+                                    $party_size
+        );
         if($res_id) {
             echo "<h1>Reservation Confirmed! ID: #$res_id</h1><a href='index.php'>Home</a>";
             session_destroy();

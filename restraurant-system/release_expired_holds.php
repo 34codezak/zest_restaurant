@@ -1,7 +1,7 @@
 <?php
 // This is cleanup logic to release expired held reservations.
 
-require_once "config/db.php";
+require_once __DIR__ . '/config.php';
 
 $stmt = $pdo->prepare("
     UPDATE reservations
