@@ -1,1 +1,9 @@
-.env
+*.env
+*.htaccess
+*vendor
+*vlucas
+*symfony
+*composer
+*graham-campbell
+*phpoption
+db.php
