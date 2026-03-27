@@ -162,7 +162,5 @@ $reservations = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <?php endforeach; ?>
 </table>
         <a href="release_expired_holds.php" class="button">← Expired Holds</a>
-
-
 </body>
 </html>
