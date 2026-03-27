@@ -13,11 +13,10 @@ $stmt = $pdo->prepare("
 $stmt->execute([$reservation_id]);
 
 if ($stmt->rowCount() > 0) {
-    echo "<h2>Reservation Confirmed</h2>";
-    echo "<p>Your reservation has been successfully confirmed.</p>";
-    echo "<p>Reservation ID: " . $reservation_id . "</p>";
+    header("Location: simulated_payment.php?id=" . $reservation_id);
+    exit();
 } else {
-    echo "<h2>Reservation Failed</h2>";
-    echo "<p>The hold expired or the reservation is no longer available.</p>";
+    header("Location: reservation_form.php");
+    exit();
 }
 ?>

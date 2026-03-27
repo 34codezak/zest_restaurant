@@ -2,11 +2,7 @@
 require_once '../config/session.php';
 
 // Only admins allowed
-if (!isset($_SESSION['admin_id']) || $_SESSION['role'] !== 'admin') {
-    header("Location: admin_login.php");
-    exit();
-}else{
-    // After a successful authentication or Redirect if already logged in
+if (isset($_SESSION['admin_logged_in'])) {
     header("Location: tables.php");
     exit();
 }

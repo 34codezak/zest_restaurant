@@ -8,8 +8,9 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 // Regenerate session on login - after successful login
-session_regenerate_id(true);
 $_SESSION['admin_logged_in'] = true;
+$_SESSION['admin_id'] = $admin['admin_id'];
+session_regenerate_id(true);
 ?>
 <!DOCTYPE html>
 <html lang="en">

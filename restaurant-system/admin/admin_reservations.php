@@ -1,3 +1,32 @@
+<?php
+require_once '../config/session.php';
+require_once __DIR__ . '/config.php';
+
+// Restrict access
+if (!isset($_SESSION['admin_logged_in'])) {
+    header("Location: admin_login.php");
+    exit();
+}
+
+// Handle cancel
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['reservation_id'])) {
+    $stmt = $pdo->prepare("UPDATE reservations SET status = 'cancelled' WHERE reservation_id = :id");
+    $stmt->execute(['id' => $_POST['cancel_id']]);
+    $msg = "Reservation cancelled.";
+}
+
+// Fetch reservations
+$sql = "
+SELECT r.*, c.name AS customer_name, t.table_number, ts.start_time AS slot_name
+FROM reservations r
+LEFT JOIN customers c ON r.customer_id = c.customer_id
+LEFT JOIN tables t ON r.table_id = t.table_id
+LEFT JOIN time_slots ts ON r.slot_id = ts.slot_id
+ORDER BY r.reservation_date DESC
+";
+
+$reservations = $pdo->query($sql)->fetchAll();
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>

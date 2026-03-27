@@ -5,27 +5,27 @@ require_once __DIR__ . '/config.php';
 
 // Restrict access
 if (!isset($_SESSION['admin_logged_in'])) {
-    header("Location: admin/admin_login.php");
+    header("Location: admin_login.php");
     exit();
 }
 
 $msg = "";
 
-// 🔴 Release Table (cancel reservation)
+// Release Table (cancel reservation)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['release_id'])) {
     $stmt = $pdo->prepare("UPDATE reservations SET status = 'cancelled' WHERE reservation_id = :id");
     $stmt->execute(['id' => $_POST['release_id']]);
     $msg = "Table released successfully.";
 }
 
-// 🟢 Mark as Paid
+// Mark as Paid
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['mark_paid'])) {
     $stmt = $pdo->prepare("UPDATE reservations SET is_paid = 1 WHERE reservation_id = :id");
     $stmt->execute(['id' => $_POST['mark_paid']]);
     $msg = "Marked as paid.";
 }
 
-// 📊 Fetch all tables + latest reservation
+// Fetch all tables + latest reservation
 $sql = "
 SELECT 
     t.table_id,
@@ -65,7 +65,7 @@ $now = new DateTime();
 </head>
 <body>
 
-<h2>🍽️ Table Management</h2>
+<h2>Table Management</h2>
 
 <?php if ($msg): ?>
     <p style="color: green;"><strong><?= $msg ?></strong></p>
