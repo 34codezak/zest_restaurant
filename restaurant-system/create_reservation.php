@@ -6,7 +6,7 @@ require_once 'config/db.php';
 require_once 'config/session.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    header("Location: ../index.php");
+    header("Location: index.php");
     exit();
 }
 
@@ -19,20 +19,32 @@ $time = $_POST['time'] ?? '';
 $guests = (int)($_POST['guests'] ?? 0);
 
 // Validation
-if ($guests <= 0) die("Invalid guests");
-if (strtotime($date) < strtotime(date('Y-m-d'))) die("Invalid date");
+if ($guests <= 0) die("Invalid number of guests.");
+if (strtotime($date) < strtotime(date('Y-m-d'))) die("Invalid reservation date.");
 
 // Get time_slot_id
-$stmt = $pdo->prepare("SELECT time_slot_id FROM time_slots WHERE start_time = ?");
+$stmt = $pdo->prepare("SELECT slot_id FROM time_slots WHERE start_time = ?");
 $stmt->execute([$time]);
 $time_slot_id = $stmt->fetchColumn();
 
-if (!$time_slot_id) die("Invalid time slot");
+if (!$time_slot_id) die("Invalid time slot.");
 
 // Start transaction
 $pdo->beginTransaction();
 
 try {
+
+    // Check if customer exists
+    $stmt = $pdo->prepare("SELECT customer_id FROM customers WHERE email = ?");
+    $stmt->execute([$email]);
+    $customer_id = $stmt->fetchColumn();
+
+    if (!$customer_id) {
+        // Insert new customer
+        $stmt = $pdo->prepare("INSERT INTO customers (name, email, phone) VALUES (?, ?, ?)");
+        $stmt->execute([$name, $email, $phone]);
+        $customer_id = $pdo->lastInsertId();
+    }
 
     // Find available table
     $stmt = $pdo->prepare("
@@ -40,55 +52,39 @@ try {
         FROM tables
         WHERE capacity >= ?
         AND table_id NOT IN (
-            SELECT table_id FROM reservations
+            SELECT table_id
+            FROM reservations
             WHERE reservation_date = ?
-            AND time_slot_id = ?
+            AND slot_id = ?
             AND status IN ('held','confirmed')
             AND (hold_expires_at IS NULL OR hold_expires_at > NOW())
         )
         ORDER BY capacity ASC
         LIMIT 1
     ");
-
     $stmt->execute([$guests, $date, $time_slot_id]);
     $table = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if (!$table) {
-        throw new Exception("No available tables");
+        throw new Exception("No available tables for your party size at this time.");
     }
 
-    // Insert customer
-    $stmt = $pdo->prepare("
-        INSERT INTO customers (name, email, phone)
-        VALUES (?, ?, ?)
-    ");
-    $stmt->execute([$name, $email, $phone]);
-
-    $customer_id = $pdo->lastInsertId();
-
-    // Create reservation
+    // Insert reservation
     $stmt = $pdo->prepare("
         INSERT INTO reservations 
-        (customer_id, table_id, reservation_date, time_slot_id, status, hold_expires_at)
+        (customer_id, table_id, reservation_date, slot_id, status, hold_expires_at)
         VALUES (?, ?, ?, ?, 'held', DATE_ADD(NOW(), INTERVAL 10 MINUTE))
     ");
-
-    $stmt->execute([
-        $customer_id,
-        $table['table_id'],
-        $date,
-        $time_slot_id
-    ]);
-
+    $stmt->execute([$customer_id, $table['table_id'], $date, $time_slot_id]);
     $reservation_id = $pdo->lastInsertId();
 
     $pdo->commit();
 
+    // Redirect to confirmation
     header("Location: confirmation.php?id=" . $reservation_id);
     exit();
 
 } catch (Exception $e) {
     $pdo->rollBack();
-
-    echo "ERROR: " . $e->getMessage(); // debug
+    echo "<h2>Reservation Error:</h2><p>" . htmlspecialchars($e->getMessage()) . "</p>";
 }

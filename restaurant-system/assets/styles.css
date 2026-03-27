@@ -579,57 +579,6 @@ form {
     }
 }
 
-/* ---------- DARK MODE SUPPORT (Optional) ---------- */
-@media (prefers-color-scheme: dark) {
-    /* Only apply if you want dark mode support */
-    /* 
-    body {
-        background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
-    }
-    
-    .auth-card {
-        background: var(--secondary-black);
-        border-color: var(--primary-orange);
-    }
-    
-    .auth-body {
-        color: var(--white);
-    }
-    
-    .form-group label {
-        color: var(--white);
-    }
-    
-    .input-field {
-        background: var(--charcoal);
-        border-color: var(--gray-400);
-        color: var(--white);
-    }
-    
-    .input-field:focus {
-        background: var(--secondary-black);
-        border-color: var(--primary-orange);
-    }
-    
-    .input-field::placeholder {
-        color: var(--gray-400);
-    }
-    
-    .form-check label {
-        color: var(--gray-300);
-    }
-    
-    .auth-footer {
-        background: var(--charcoal);
-        border-top-color: var(--gray-400);
-    }
-    
-    .auth-footer small {
-        color: var(--gray-300);
-    }
-    */
-}
-
 /* ---------- PRINT STYLES ---------- */
 @media print {
     body {

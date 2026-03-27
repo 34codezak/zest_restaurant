@@ -1,28 +1,49 @@
 <?php
+// Enable error reporting for debugging
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
 require_once 'config/db.php';
+require_once 'config/session.php';
 
-$reservation_id = $_GET['id'];
+// Get reservation ID from query string
+$reservation_id = $_GET['id'] ?? null;
 
-$stmt = $pdo->prepare("
-    SELECT r.*, c.name, t.table_number
-    FROM reservations r
-    JOIN customers c ON r.customer_id = c.id
-    JOIN tables t ON r.table_id = t.id
-    WHERE r.id = ?
-");
-$stmt->execute([$reservation_id]);
-$reservation = $stmt->fetch();
-
-if (!$reservation) {
-    die("Reservation not found");
+if (!$reservation_id || !is_numeric($reservation_id)) {
+    die("Invalid reservation ID");
 }
-?>
 
-<h2>Confirm Reservation</h2>
-<p>Name: <?= $reservation['name'] ?></p>
-<p>Table: <?= $reservation['table_number'] ?></p>
+try {
+    // Prepare the query
+    $stmt = $pdo->prepare("
+        SELECT r.reservation_id, r.reservation_date, r.party_size, r.status, r.hold_expires_at,
+               c.name AS customer_name, c.email, c.phone,
+               t.table_number, t.capacity
+        FROM reservations r
+        JOIN customers c ON r.customer_id = c.customer_id
+        JOIN tables t ON r.table_id = t.table_id
+        WHERE r.reservation_id = ?
+    ");
 
-<form action="finalize_reservation.php" method="POST">
-    <input type="hidden" name="reservation_id" value="<?= $reservation_id ?>">
-    <button type="submit">Confirm Booking</button>
-</form>
+    // Execute with bound parameter
+    $stmt->execute([$reservation_id]);
+    $reservation = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if (!$reservation) {
+    // Redirect if reservation not found
+    header("Location: successinfo.php?error=notfound");
+    exit();
+}
+
+// Redirect to successinfo.php with reservation ID in query string
+header("Location: successinfo.php?reservation_id=" . urlencode($reservation['reservation_id']));
+exit();
+
+    if ($reservation['status'] === 'held') {
+        echo "<p><em>Please complete your payment before " . htmlspecialchars($reservation['hold_expires_at']) . "</em></p>";
+    }
+
+} catch (PDOException $e) {
+    die("Database error: " . $e->getMessage());
+}
