@@ -125,7 +125,7 @@ try {
     <?php endif; ?>
 
     <a class="button" href="simulated_payment.php?id=<?php echo $reservation_id; ?>">Confirm & Pay</a>
-    <a class="button" href="index.php">Back to Home</a>
+    <a class="button" href="index.php">← Back to Home</a>
 </div>
 </body>
 </html>

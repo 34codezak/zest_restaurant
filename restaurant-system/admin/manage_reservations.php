@@ -52,6 +52,7 @@ $reservations = $stmt->fetchAll(PDO::FETCH_ASSOC);
         color: #fff;
         margin: 0;
         padding: 0;
+        align-items: center;
     }
     h1 {
         text-align: center;
@@ -86,6 +87,14 @@ $reservations = $stmt->fetchAll(PDO::FETCH_ASSOC);
         cursor: pointer;
         color: #fff;
         font-weight: bold;
+    }
+
+    .button {
+        background: #e5c33e;
+        color: #000;
+        text-decoration: none;
+        padding: 10px;
+        justify-content: right;
     }
     .btn-confirm {
         background-color: #4caf50;
@@ -152,6 +161,8 @@ $reservations = $stmt->fetchAll(PDO::FETCH_ASSOC);
     </tr>
     <?php endforeach; ?>
 </table>
+        <a href="release_expired_holds.php" class="button">← Expired Holds</a>
+
 
 </body>
 </html>

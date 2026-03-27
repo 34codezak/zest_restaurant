@@ -123,7 +123,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <button type="submit" class="btn-submit"><i class="fas fa-credit-card"></i> Complete Payment</button>
             </form>
         </div>
-        <a class="btn-submit" href="index.php">Back to Home</a>
+        <a class="btn-submit" href="index.php">← Back to Home</a>
 
     </div>
 </main>
