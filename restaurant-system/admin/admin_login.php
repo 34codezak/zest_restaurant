@@ -1,63 +1,74 @@
 <?php
+// Start session safely
 require_once '../config/session.php';
 
-// Only admins allowed
-if (isset($_SESSION['admin_logged_in'])) {
+// Database connection
+require_once '../config/db.php';
+
+// Redirect if already logged in
+if (isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'] === true) {
     header("Location: tables.php");
     exit();
 }
 
-// Database Configuration
-$host = 'localhost';
-$db   = 'restaurant_system';
-$user = 'root';
-$pass = '';
-$charset = 'utf8mb4';
-
-$dsn = "mysql:host=$host;dbname=$db;charset=$charset";
-$options = [
-    PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
-    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-    PDO::ATTR_EMULATE_PREPARES   => false,
-];
-
-$error = "";
-$success = "";
+// Initialize variables
+$error = '';
 
 // Handle Login Form Submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+
     $username = trim($_POST['username'] ?? '');
     $password = $_POST['password'] ?? '';
-    
+
     // Validation
     if (empty($username) || empty($password)) {
         $error = "Please enter both username and password.";
     } else {
         try {
-            $pdo = new PDO($dsn, $user, $pass, $options);
-            
-            // Secure query with prepared statement
-            $stmt = $pdo->prepare("SELECT admin_id, username, password_hash, email FROM admins WHERE username = :username");
+            // Use existing PDO from db.php (DO NOT recreate)
+            global $pdo;
+
+            // Secure prepared statement
+            $stmt = $pdo->prepare("
+                SELECT admin_id, username, password_hash 
+                FROM admins 
+                WHERE username = :username
+                LIMIT 1
+            ");
             $stmt->execute(['username' => $username]);
-            $admin = $stmt->fetch();
-            
-            // if ($admin && password_verify($password, $admin['password_hash'])) {
-            if ($admin && $password === $admin['password_hash']) {
-                // Login successful
+
+            $admin = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            // Verify password
+            if ($admin && password_verify($password, $admin['password_hash'])) {
+
+                // Secure session setup
+                session_regenerate_id(true);
+
                 $_SESSION['admin_logged_in'] = true;
                 $_SESSION['admin_id'] = $admin['admin_id'];
                 $_SESSION['admin_username'] = $admin['username'];
-                
+
                 // Update last login
-                $updateStmt = $pdo->prepare("UPDATE admins SET last_login = NOW() WHERE admin_id = :id");
+                $updateStmt = $pdo->prepare("
+                    UPDATE admins 
+                    SET last_login = NOW() 
+                    WHERE admin_id = :id
+                ");
                 $updateStmt->execute(['id' => $admin['admin_id']]);
-                
-                header("Location: admin_reservations.php?admin=true");
-                exit;
+
+                // Redirect to admin dashboard
+                header("Location: admin_reservations.php");
+                exit();
+
             } else {
                 $error = "Invalid username or password.";
             }
+
         } catch (PDOException $e) {
+            // For development ONLY (remove in production)
+            // echo $e->getMessage();
+
             $error = "Database error. Please try again later.";
         }
     }
@@ -276,7 +287,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             
                             <!-- Back Link -->
                             <div class="text-center">
-                                <a href="index.php" class="back-link">
+                                <a href="../index.php" class="back-link">
                                     <i class="fas fa-arrow-left me-2"></i>Back to Restaurant
                                 </a>
                             </div>

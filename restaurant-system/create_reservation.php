@@ -1,69 +1,94 @@
-<?php 
-ini_set('display_errors', 1);
+<?php
 error_reporting(E_ALL);
+ini_set('display_errors', 1);
 
-require_once __DIR__ . '/session.php';
+require_once 'config/db.php';
+require_once 'config/session.php';
 
-require_once __DIR__ . '/config/config.php';
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    header("Location: ../index.php");
+    exit();
+}
 
+// Get form data
+$name = trim($_POST['name'] ?? '');
+$email = trim($_POST['email'] ?? '');
+$phone = trim($_POST['phone'] ?? '');
+$date = $_POST['date'] ?? '';
+$time = $_POST['time'] ?? '';
+$guests = (int)($_POST['guests'] ?? 0);
 
+// Validation
+if ($guests <= 0) die("Invalid guests");
+if (strtotime($date) < strtotime(date('Y-m-d'))) die("Invalid date");
 
-if (!isset($_SESSION['customer_data'])) {
-    header("Location: index.php?error=session_expired");
-    exit;
+// Get time_slot_id
+$stmt = $pdo->prepare("SELECT time_slot_id FROM time_slots WHERE start_time = ?");
+$stmt->execute([$time]);
+$time_slot_id = $stmt->fetchColumn();
 
-    $customer = $_SESSION['customer_data'];
-    $table_id = (int)$_POST['table_id'];
+if (!$time_slot_id) die("Invalid time slot");
 
-    try {
-        $pdo->beginTransaction();
+// Start transaction
+$pdo->beginTransaction();
 
-        // Recheck table availability before insert to avoid race condition
-        $checkStmt = $pdo->prepare("
-            SELECT COUNT(*)
-            FROM reservations
-            WHERE table_id = ?
-            AND reservation_date = ?
+try {
+
+    // Find available table
+    $stmt = $pdo->prepare("
+        SELECT table_id, capacity
+        FROM tables
+        WHERE capacity >= ?
+        AND table_id NOT IN (
+            SELECT table_id FROM reservations
+            WHERE reservation_date = ?
             AND time_slot_id = ?
-            AND status IN ('held', 'confirmed')
+            AND status IN ('held','confirmed')
             AND (hold_expires_at IS NULL OR hold_expires_at > NOW())
-        ");
-        $checkStmt->execute([$table_id, $customer['reservation_date'], $customer['time_slot_id']]);
-        $count = $checkStmt->fetchColumn();
+        )
+        ORDER BY capacity ASC
+        LIMIT 1
+    ");
 
-        if ($count > 0) {
-            $pdo->rollBack();
-            die("Sorry, the table was just booked by another customer.");
-        }
+    $stmt->execute([$guests, $date, $time_slot_id]);
+    $table = $stmt->fetch(PDO::FETCH_ASSOC);
 
+    if (!$table) {
+        throw new Exception("No available tables");
+    }
 
     // Insert customer
-    $stmt = $pdo->prepare("INSERT INTO customers (full_name, email, phone) VALUES (?, ?, ?)");
-    $stmt->execute([$customer['full_name'], $customer['email'], $customer['phone']]);
+    $stmt = $pdo->prepare("
+        INSERT INTO customers (name, email, phone)
+        VALUES (?, ?, ?)
+    ");
+    $stmt->execute([$name, $email, $phone]);
+
     $customer_id = $pdo->lastInsertId();
 
-    // Insert reservation as HELD for 10 minutes
+    // Create reservation
     $stmt = $pdo->prepare("
         INSERT INTO reservations 
-        (customer_id, table_id, reservation_date, time_slot_id, party_size, status, hold_expires_at)
-        VALUES (?, ?, ?, ?, ?, 'held', DATE_ADD(NOW(), INTERVAL 10 MINUTE))
+        (customer_id, table_id, reservation_date, time_slot_id, status, hold_expires_at)
+        VALUES (?, ?, ?, ?, 'held', DATE_ADD(NOW(), INTERVAL 10 MINUTE))
     ");
+
     $stmt->execute([
         $customer_id,
-        $table_id,
-        $customer['reservation_date'],
-        $customer['time_slot_id'],
-        $customer['party_size']
+        $table['table_id'],
+        $date,
+        $time_slot_id
     ]);
 
     $reservation_id = $pdo->lastInsertId();
+
     $pdo->commit();
 
-    header("Location: simulate_payment.php?id=" . $reservation_id);
-    exit;
+    header("Location: confirmation.php?id=" . $reservation_id);
+    exit();
+
 } catch (Exception $e) {
     $pdo->rollBack();
-    die("Error creating reservation: " . $e->getMessage());
+
+    echo "ERROR: " . $e->getMessage(); // debug
 }
-}
-?>

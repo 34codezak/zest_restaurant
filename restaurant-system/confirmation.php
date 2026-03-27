@@ -1,22 +1,28 @@
 <?php
-require_once __DIR__ . '/session.php';
+require_once 'config/db.php';
 
-require_once __DIR__ . '/config.php';
-
-$reservation_id = (int)$_POST['reservation_id'];
+$reservation_id = $_GET['id'];
 
 $stmt = $pdo->prepare("
-    UPDATE reservations
-    SET status = 'confirmed', hold_expires_at = NULL
-    WHERE id = ? AND status = 'held' AND hold_expires_at > NOW()
+    SELECT r.*, c.name, t.table_number
+    FROM reservations r
+    JOIN customers c ON r.customer_id = c.id
+    JOIN tables t ON r.table_id = t.id
+    WHERE r.id = ?
 ");
 $stmt->execute([$reservation_id]);
+$reservation = $stmt->fetch();
 
-if ($stmt->rowCount() > 0) {
-    header("Location: simulated_payment.php?id=" . $reservation_id);
-    exit();
-} else {
-    header("Location: reservation_form.php");
-    exit();
+if (!$reservation) {
+    die("Reservation not found");
 }
 ?>
+
+<h2>Confirm Reservation</h2>
+<p>Name: <?= $reservation['name'] ?></p>
+<p>Table: <?= $reservation['table_number'] ?></p>
+
+<form action="finalize_reservation.php" method="POST">
+    <input type="hidden" name="reservation_id" value="<?= $reservation_id ?>">
+    <button type="submit">Confirm Booking</button>
+</form>
