@@ -1,300 +1,157 @@
 <?php
-require_once '../config/session.php';
-require_once __DIR__ . '/config.php';
+// manage_reservations.php
+session_start();
+require_once '../config/db.php'; 
+require_once '../config/session.php'; // Admin session check
 
-// Restrict access
-if (!isset($_SESSION['admin_logged_in'])) {
+// Ensure only logged-in admins can access
+if (!isset($_SESSION['admin_logged_in']) || !$_SESSION['admin_logged_in']) {
     header("Location: admin_login.php");
     exit();
 }
 
-// Handle cancel
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['reservation_id'])) {
-    $stmt = $pdo->prepare("UPDATE reservations SET status = 'cancelled' WHERE reservation_id = :id");
-    $stmt->execute(['id' => $_POST['cancel_id']]);
-    $msg = "Reservation cancelled.";
+// Handle reservation actions (Confirm / Cancel)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['reservation_id'])) {
+    $reservation_id = (int)$_POST['reservation_id'];
+    $action = $_POST['action'];
+
+    if ($action === 'confirm') {
+        $stmt = $pdo->prepare("UPDATE reservations SET status = 'confirmed' WHERE reservation_id = ?");
+        $stmt->execute([$reservation_id]);
+    } elseif ($action === 'cancel') {
+        $stmt = $pdo->prepare("UPDATE reservations SET status = 'cancelled' WHERE reservation_id = ?");
+        $stmt->execute([$reservation_id]);
+    }
+    header("Location: manage_reservations.php"); // Refresh page
+    exit();
 }
 
-// Fetch reservations
-$sql = "
-SELECT r.*, c.name AS customer_name, t.table_number, ts.start_time AS slot_name
-FROM reservations r
-LEFT JOIN customers c ON r.customer_id = c.customer_id
-LEFT JOIN tables t ON r.table_id = t.table_id
-LEFT JOIN time_slots ts ON r.slot_id = ts.slot_id
-ORDER BY r.reservation_date DESC
-";
-
-$reservations = $pdo->query($sql)->fetchAll();
+// Fetch all reservations
+$stmt = $pdo->query("
+    SELECT r.reservation_id, r.reservation_date, r.party_size, r.status, r.hold_expires_at,
+           c.name AS customer_name, c.email, c.phone,
+           t.table_number
+    FROM reservations r
+    JOIN customers c ON r.customer_id = c.customer_id
+    JOIN tables t ON r.table_id = t.table_id
+    ORDER BY r.reservation_date DESC, r.reservation_id DESC
+");
+$reservations = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Zest Admin Dashboard</title>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin - Manage Reservations</title>
 <style>
-    /* ===== Global Reset ===== */
-* {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-    font-family: 'Segoe UI', sans-serif;
-}
-
-body {
-    background-color: #f4f4f4;
-    color: #333;
-    line-height: 1.6;
-}
-
-/* ===== Dashboard Layout ===== */
-.dashboard {
-    display: flex;
-    min-height: 100vh;
-}
-
-/* ===== Sidebar ===== */
-.sidebar {
-    width: 220px;
-    background-color: #1a1a1a;
-    color: #fff;
-    padding: 2rem 1rem;
-    display: flex;
-    flex-direction: column;
-    position: fixed;
-    height: 100%;
-}
-
-.sidebar .logo {
-    font-size: 1.8rem;
-    font-weight: bold;
-    text-align: center;
-    margin-bottom: 2rem;
-}
-
-.sidebar nav {
-    display: flex;
-    flex-direction: column;
-}
-
-.sidebar nav a {
-    display: flex;
-    align-items: center;
-    gap: 0.8rem;
-    text-decoration: none;
-    color: #ccc;
-    padding: 0.7rem 1rem;
-    border-radius: 5px;
-    margin-bottom: 0.5rem;
-    transition: 0.2s;
-}
-
-.sidebar nav a:hover,
-.sidebar nav a.active {
-    background-color: #ffc107;
-    color: #1a1a1a;
-}
-
-/* ===== Main Content ===== */
-.main-content {
-    margin-left: 220px;
-    padding: 2rem;
-    width: 100%;
-}
-
-/* ===== Dashboard Header ===== */
-.dashboard-header h1 {
-    font-size: 1.8rem;
-    margin-bottom: 1.5rem;
-}
-
-/* ===== Alerts ===== */
-.alert {
-    padding: 0.8rem 1rem;
-    margin-bottom: 1rem;
-    border-radius: 5px;
-    text-align: center;
-}
-
-.alert-success {
-    background-color: #d4edda;
-    color: #155724;
-}
-
-/* ===== Card Styles ===== */
-.card {
-    background-color: #fff;
-    border-radius: 10px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    padding: 1.5rem;
-    overflow-x: auto;
-}
-
-/* ===== Table Styles ===== */
-.table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-.table th,
-.table td {
-    padding: 0.75rem 1rem;
-    text-align: left;
-    border-bottom: 1px solid #ddd;
-}
-
-.table th {
-    background-color: #f0f0f0;
-}
-
-.table tr:hover {
-    background-color: #f9f9f9;
-}
-
-/* ===== Status Badges ===== */
-.status {
-    display: inline-block;
-    padding: 0.3rem 0.6rem;
-    border-radius: 5px;
-    font-weight: 600;
-    text-transform: capitalize;
-    font-size: 0.85rem;
-}
-
-.status.pending {
-    background-color: #fff3cd;
-    color: #856404;
-}
-
-.status.confirmed {
-    background-color: #d4edda;
-    color: #155724;
-}
-
-.status.cancelled {
-    background-color: #f8d7da;
-    color: #721c24;
-}
-
-/* ===== Buttons ===== */
-button,
-.btn-danger {
-    background-color: #dc3545;
-    color: #fff;
-    border: none;
-    padding: 0.5rem 0.9rem;
-    border-radius: 5px;
-    cursor: pointer;
-    font-weight: bold;
-    transition: 0.2s;
-}
-
-button:hover,
-.btn-danger:hover {
-    background-color: #c82333;
-}
-
-/* ===== Responsive ===== */
-@media (max-width: 768px) {
-    .dashboard {
-        flex-direction: column;
+    body {
+        font-family: Arial, sans-serif;
+        background-color: #1e1e1e;
+        color: #fff;
+        margin: 0;
+        padding: 0;
     }
-    .sidebar {
-        width: 100%;
-        height: auto;
-        position: relative;
-        flex-direction: row;
-        justify-content: space-around;
+    h1 {
+        text-align: center;
+        padding: 20px 0;
+        color: #ff9800;
     }
-    .main-content {
-        margin-left: 0;
-        padding: 1rem;
+    table {
+        width: 95%;
+        margin: 20px auto;
+        border-collapse: collapse;
     }
-    .table th,
-    .table td {
-        padding: 0.5rem;
+    th, td {
+        padding: 12px;
+        border: 1px solid #333;
+        text-align: center;
     }
-}
+    th {
+        background-color: #ff9800;
+        color: #1e1e1e;
+    }
+    tr:nth-child(even) {
+        background-color: #2c2c2c;
+    }
+    tr:hover {
+        background-color: #444;
+    }
+    .btn {
+        padding: 6px 12px;
+        margin: 2px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        color: #fff;
+        font-weight: bold;
+    }
+    .btn-confirm {
+        background-color: #4caf50;
+    }
+    .btn-cancel {
+        background-color: #f44336;
+    }
+    .btn-edit {
+        background-color: #ff9800;
+        color: #1e1e1e;
+    }
+    form {
+        display: inline;
+    }
 </style>
 </head>
 <body>
 
-<div class="dashboard">
+<h1>Manage Reservations</h1>
 
-    <!-- SIDEBAR -->
-    <aside class="sidebar">
-        <h2 class="logo">ZEST</h2>
-        <nav>
-            <a href="#" class="active"><i class="fas fa-calendar"></i> Reservations</a>
-            <a href="#"><i class="fas fa-users"></i> Customers</a>
-            <a href="tables.php"><i class="fas fa-table"></i> Tables</a>
-            <a href="#"><i class="fas fa-cog"></i> Settings</a>
-            <a href="index.php"><i class="fas fa-logout"></i> Logout</a>
-        </nav>
-    </aside>
+<table>
+    <tr>
+        <th>ID</th>
+        <th>Customer</th>
+        <th>Email</th>
+        <th>Phone</th>
+        <th>Table</th>
+        <th>Party Size</th>
+        <th>Date</th>
+        <th>Status</th>
+        <th>Actions</th>
+    </tr>
 
-    <!-- MAIN -->
-    <main class="main-content">
-
-        <!-- HEADER -->
-        <div class="dashboard-header">
-            <h1>Reservations</h1>
-        </div>
-
-        <?php if (isset($msg)): ?>
-            <div class="alert alert-success"><?php echo $msg; ?></div>
-        <?php endif; ?>
-
-        <!-- TABLE CARD -->
-        <div class="card">
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Customer</th>
-                        <th>Date</th>
-                        <th>Time</th>
-                        <th>Table</th>
-                        <th>Size</th>
-                        <th>Status</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach ($reservations as $res): ?>
-                    <tr>
-                        <td><?= $res['reservation_id'] ?></td>
-                        <td><?= htmlspecialchars($res['customer_name']) ?></td>
-                        <td><?= $res['reservation_date'] ?></td>
-                        <td><?= $res['slot_name'] ?></td>
-                        <td><?= $res['table_number'] ?></td>
-                        <td><?= $res['party_size'] ?></td>
-                        <td>
-                            <span class="status <?= $res['status'] ?>">
-                                <?= $res['status'] ?>
-                            </span>
-                        </td>
-                        <td>
-                            <?php if ($res['status'] != 'cancelled'): ?>
-                            <form method="POST">
-                                <input type="hidden" name="cancel_id" value="<?= $res['reservation_id'] ?>">
-                                <button class="btn-danger" onclick="return confirm('Cancel this reservation?')">Cancel</button>
-                            </form>
-                            <?php else: ?>
-                                -
-                            <?php endif; ?>
-                        </td>
-                    </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
-        </div>
-
-    </main>
-
-</div>
+    <?php foreach ($reservations as $res): ?>
+    <tr>
+        <td><?= htmlspecialchars($res['reservation_id']) ?></td>
+        <td><?= htmlspecialchars($res['customer_name']) ?></td>
+        <td><?= htmlspecialchars($res['email']) ?></td>
+        <td><?= htmlspecialchars($res['phone']) ?></td>
+        <td><?= htmlspecialchars($res['table_number']) ?></td>
+        <td><?= htmlspecialchars($res['party_size']) ?></td>
+        <td><?= htmlspecialchars($res['reservation_date']) ?></td>
+        <td><?= htmlspecialchars($res['status']) ?></td>
+        <td>
+            <?php if ($res['status'] === 'held' || $res['status'] === 'pending_payment'): ?>
+            <form method="POST">
+                <input type="hidden" name="reservation_id" value="<?= $res['reservation_id'] ?>">
+                <input type="hidden" name="action" value="confirm">
+                <button class="btn btn-confirm" type="submit">Confirm</button>
+            </form>
+            <?php endif; ?>
+            <?php if ($res['status'] !== 'cancelled'): ?>
+            <form method="POST">
+                <input type="hidden" name="reservation_id" value="<?= $res['reservation_id'] ?>">
+                <input type="hidden" name="action" value="cancel">
+                <button class="btn btn-cancel" type="submit">Cancel</button>
+            </form>
+            <?php endif; ?>
+            <form method="GET" action="edit_reservation.php">
+                <input type="hidden" name="reservation_id" value="<?= $res['reservation_id'] ?>">
+                <button class="btn btn-edit" type="submit">Edit</button>
+            </form>
+        </td>
+    </tr>
+    <?php endforeach; ?>
+</table>
 
 </body>
 </html>

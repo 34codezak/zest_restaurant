@@ -83,6 +83,249 @@ body {
     -moz-osx-font-smoothing: grayscale;
 }
 
+/*REGISTER.PHP Page*/
+/* assets/style.css */
+
+/* RESET */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Arial', sans-serif;
+    background-color: #1e1e1e; /* Dark background */
+    color: #fff;
+}
+
+/* Container */
+.auth-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+/* Card */
+.auth-card {
+    background-color: #2c2c2c; 
+    border-radius: 12px;
+    width: 100%;
+    max-width: 450px;
+    padding: 30px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+}
+
+/* Header */
+.auth-header .logo {
+    font-size: 32px;
+    font-weight: bold;
+    color: #f0c92fdc;
+    text-align: center;
+}
+.auth-header .logo span {
+    color: #fff;
+}
+.auth-header p {
+    text-align: center;
+    margin-top: 5px;
+    color: #ccc;
+}
+
+/* Form */
+.form-title {
+    text-align: center;
+    color: #ff9800;
+    margin-bottom: 20px;
+    font-size: 20px;
+}
+
+.form-group {
+    margin-bottom: 15px;
+    position: relative;
+}
+
+.form-row {
+    display: flex;
+    gap: 10px;
+}
+
+label {
+    display: block;
+    margin-bottom: 5px;
+    color: #ff9800;
+}
+
+.input-field {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #444;
+    border-radius: 6px;
+    background-color: #1e1e1e;
+    color: #fff;
+    outline: none;
+    transition: all 0.2s ease;
+}
+
+.input-field:focus {
+    border-color: #f0c92fdc;
+    box-shadow: 0 0 5px #ff9800;
+}
+
+.input-error {
+    border-color: #f44336 !important;
+}
+
+/* Error & success messages */
+.error-text {
+    color: #f44336;
+    font-size: 12px;
+    margin-top: 3px;
+}
+.alert {
+    padding: 10px;
+    border-radius: 6px;
+    margin-bottom: 10px;
+    text-align: center;
+}
+.alert-error {
+    background-color: #f44336;
+    color: #fff;
+}
+.alert-success {
+    background-color: #4caf50;
+    color: #fff;
+}
+
+/* Password toggle */
+.input-wrapper {
+    position: relative;
+}
+.toggle-password {
+    position: absolute;
+    top: 50%;
+    right: 10px;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: #ff9800;
+    cursor: pointer;
+}
+
+/* Password strength bar */
+.password-strength {
+    height: 5px;
+    width: 100%;
+    background-color: #444;
+    border-radius: 5px;
+    margin-top: 5px;
+    overflow: hidden;
+}
+#strengthBar {
+    height: 100%;
+    width: 0%;
+    background-color: #ff9800;
+    transition: width 0.3s ease;
+}
+
+/* Checkbox */
+.form-check {
+    display: flex;
+    align-items: center;
+    margin-bottom: 15px;
+    font-size: 14px;
+    color: #ccc;
+}
+.form-check input[type="checkbox"] {
+    margin-right: 10px;
+}
+
+/* Submit button */
+.btn-primary {
+    width: 100%;
+    padding: 12px;
+    background-color: #ff9800;
+    color: #1e1e1e;
+    font-weight: bold;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    margin-top: 10px;
+    transition: all 0.2s ease;
+}
+.btn-primary:hover {
+    background-color: #e68900;
+}
+
+/* Security text */
+.security-text {
+    text-align: center;
+    font-size: 12px;
+    color: #aaa;
+    margin-top: 8px;
+}
+
+/* Divider */
+.divider {
+    text-align: center;
+    margin: 20px 0;
+    color: #888;
+    font-size: 12px;
+}
+.divider span {
+    background-color: #2c2c2c;
+    padding: 0 8px;
+}
+
+/* Social buttons */
+.social-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+}
+.btn-social {
+    padding: 10px 15px;
+    border-radius: 6px;
+    font-weight: bold;
+    text-decoration: none;
+    color: #fff;
+    transition: all 0.2s ease;
+}
+.btn-social.google {
+    background-color: #db4437;
+}
+.btn-social.google:hover {
+    background-color: #c33c2f;
+}
+.btn-social.facebook {
+    background-color: #3b5998;
+}
+.btn-social.facebook:hover {
+    background-color: #334b80;
+}
+
+/* Footer */
+.auth-footer {
+    text-align: center;
+    margin-top: 20px;
+}
+.auth-footer a {
+    color: #f0c92fdc;
+    text-decoration: none;
+}
+.auth-footer a:hover {
+    text-decoration: underline;
+}
+
+/* Responsive */
+@media (max-width: 500px) {
+    .form-row {
+        flex-direction: column;
+    }
+}
+
 /* ---------- LAYOUT ---------- */
 .auth-container {
     width: 100%;

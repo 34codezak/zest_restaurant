@@ -87,6 +87,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             font-weight: bold;
             transition: 0.3s;
         }
+
+        a {
+            color: #1a1a1a;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            font-weight: bold;
+            margin: 5px;
+            text-decoration: none;
+        }
+        a:hover{
+            color: #e5c33c;
+        }
+
         button.btn-submit:hover {
             background-color: #e5c33c;
         }
@@ -107,6 +123,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <button type="submit" class="btn-submit"><i class="fas fa-credit-card"></i> Complete Payment</button>
             </form>
         </div>
+        <a class="btn-submit" href="index.php">Back to Home</a>
+
     </div>
 </main>
 

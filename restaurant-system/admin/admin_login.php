@@ -1,4 +1,8 @@
 <?php
+
+$password_hash = '$2y$10$e0NRb6qjvL0Xo5UMX1d0QuX8XmztJr6JxqRbU1DpKssGnR82JG7kG'; // from DB
+var_dump(password_verify('aDmin123!', $password_hash)); // should return bool(true)
+
 // Start session safely
 require_once '../config/session.php';
 
@@ -275,6 +279,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <button type="submit" class="btn btn-orange btn-lg">
                                     <i class="fas fa-sign-in-alt me-2"></i>Login
                                 </button>
+                            </div>
+
+                            <div class="d-grid mb-3">
+                                <a class="button" href="../accounts/register.php">
+                                    <i class="fas fa-sign-in-alt me-2"></i>Sign Up
+                                </a>
                             </div>
                             
                             <!-- Remember Me -->
